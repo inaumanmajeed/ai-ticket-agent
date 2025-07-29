@@ -16,7 +16,14 @@ async function initCollection() {
 
     collection = exists
       ? await client.getCollection({ name: collectionName })
-      : await client.createCollection({ name: collectionName });
+      : await client.createCollection({
+          name: collectionName,
+          embeddingFunction: {
+            generate: async (texts) => {
+              return await Promise.all(texts.map(embedText));
+            },
+          },
+        });
   }
   return collection;
 }
