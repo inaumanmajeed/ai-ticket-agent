@@ -1,92 +1,55 @@
 import { ChromaClient } from "chromadb";
+import { v4 as uuidv4 } from "uuid";
+import { embedText } from "./embedding.js";
 
 const client = new ChromaClient({
   url: process.env.CHROMADB_URL || "http://localhost:8000",
 });
+
 const collectionName = "support_tickets";
+let collection;
 
-let collection = null;
-
-const mockEmbeddingFunction = {
-  generate: async (texts) => {
-    return texts.map(() => Array.from({ length: 384 }, () => Math.random()));
-  },
-};
-
-async function getCollection() {
+async function initCollection() {
   if (!collection) {
-    // Always delete and recreate to ensure embedding function is set
-    try {
-      await client.deleteCollection({ name: collectionName });
-    } catch (err) {
-      // Ignore if not found
-    }
-    collection = await client.createCollection({
-      name: collectionName,
-      embeddingFunction: mockEmbeddingFunction,
-    });
+    const collections = await client.listCollections();
+    const exists = collections.some((c) => c.name === collectionName);
+
+    collection = exists
+      ? await client.getCollection({ name: collectionName })
+      : await client.createCollection({ name: collectionName });
   }
   return collection;
 }
 
-export async function storeTicket(text, result) {
-  try {
-    const coll = await getCollection();
-    // Generate a random embedding with correct dimension (384)
-    const embedding = Array.from({ length: 384 }, () => Math.random());
-    // Sanitize metadata: only allow string, number, boolean, or null
-    const sanitizeMetadata = (obj) => {
-      const meta = {};
-      for (const [key, value] of Object.entries(obj)) {
-        if (
-          typeof value === "string" ||
-          typeof value === "number" ||
-          typeof value === "boolean" ||
-          value === null
-        ) {
-          meta[key] = value;
-        } else if (Array.isArray(value)) {
-          meta[key] = JSON.stringify(value);
-        } else if (typeof value === "object" && value !== null) {
-          meta[key] = JSON.stringify(value);
-        } else {
-          meta[key] = String(value);
-        }
-      }
-      return meta;
+export async function getSimilarTicket(text) {
+  const collection = await initCollection();
+  const embedding = await embedText(text);
+  const results = await collection.query({
+    queryEmbeddings: [embedding],
+    nResults: 1,
+  });
+
+  if (
+    results.distances?.[0]?.[0] < 0.2 && // threshold for similarity
+    results.documents?.[0]?.[0]
+  ) {
+    return {
+      text: results.documents[0][0],
+      metadata: results.metadatas[0][0],
     };
-    await coll.add({
-      documents: [text],
-      metadatas: [
-        {
-          ...sanitizeMetadata(result),
-          timestamp: new Date().toISOString(),
-        },
-      ],
-      ids: [Date.now().toString()],
-      embeddings: [embedding],
-    });
-  } catch (err) {
-    console.error("Error storing ticket:", err);
   }
+
+  return null;
 }
 
-// export async function getSimilarTickets(text, limit = 3) {
-//   try {
-//     const coll = await getCollection();
-//     if (!text) {
-//       // Return recent tickets if no query
-//       const results = await coll.get({ limit });
-//       return results;
-//     }
+export async function storeTicket(text, response) {
+  const collection = await initCollection();
+  const embedding = await embedText(text);
 
-//     const results = await coll.query({
-//       queryTexts: [text],
-//       nResults: limit,
-//     });
-//     return results;
-//   } catch (err) {
-//     console.error("Error querying similar tickets:", err);
-//     return { documents: [] };
-//   }
-// }
+  await collection.add({
+    ids: [uuidv4()],
+    documents: [text],
+    embeddings: [embedding],
+    metadatas: [{ response }],
+  });
+}
