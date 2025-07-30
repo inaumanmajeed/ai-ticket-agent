@@ -59,7 +59,7 @@ const App = () => {
           />
           {error && (
             <div className="error-message">
-              <h3>❌ Error</h3>
+              <h3>Error</h3>
               <p>{error}</p>
             </div>
           )}
