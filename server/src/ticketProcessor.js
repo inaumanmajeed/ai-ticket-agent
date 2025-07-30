@@ -11,7 +11,7 @@ const llm = new ChatOpenAI({
   },
 });
 
-const SINGLE_SHOT_PROMPT = PromptTemplate.fromTemplate(
+const SYSTEM_PROMPT_WITH_USER_TEXT = PromptTemplate.fromTemplate(
   `You are Mai, a helpful AI support agent specializing in **general ticketing and travel support**. This includes, but is not limited to, queries about events, transport, accommodation, or any other travel-related issues.
 
 Analyze the user's message and respond in a single, structured JSON object with the following keys:
@@ -52,22 +52,20 @@ User message: {text}`
 
 export async function processTicketWithSinglePrompt(text) {
   try {
-    const prompt = await SINGLE_SHOT_PROMPT.format({ text });
+    const prompt = await SYSTEM_PROMPT_WITH_USER_TEXT.format({ text });
     const result = await llm.invoke(prompt);
-    console.log("🚀 ~ processTicketWithSinglePrompt ~ result:", result);
+    // console.log("🚀 ~ processTicketWithSinglePrompt ~ result:", result);
 
     let jsonString = result.content.trim();
 
     // Regex to extract JSON from a markdown block, being more flexible with newlines/whitespace
     // between ```json and the opening brace.
     const jsonMatch = jsonString.match(/```json\s*([\s\S]*?)\s*```/);
-    console.log("🚀 ~ processTicketWithSinglePrompt ~ jsonMatch:", jsonMatch);
+    // console.log("🚀 ~ processTicketWithSinglePrompt ~ jsonMatch:", jsonMatch);
 
     if (jsonMatch && jsonMatch[1]) {
       jsonString = jsonMatch[1].trim();
     } else {
-      // If no markdown block is found, log a warning and try to parse directly.
-      // This is for cases where the LLM might omit the markdown wrapper.
       console.warn(
         "LLM did not wrap JSON in markdown. Attempting direct parse."
       );
@@ -75,10 +73,10 @@ export async function processTicketWithSinglePrompt(text) {
 
     // Attempt to parse the (potentially extracted) JSON string
     const parsedResult = JSON.parse(jsonString);
-    console.log(
-      "🚀 ~ processTicketWithSinglePrompt ~ parsedResult:",
-      parsedResult
-    );
+    // console.log(
+    //   "🚀 ~ processTicketWithSinglePrompt ~ parsedResult:",
+    //   parsedResult
+    // );
 
     return {
       response: parsedResult.response,

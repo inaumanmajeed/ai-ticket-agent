@@ -18,7 +18,6 @@ const ERROR_RESPONSE_MESSAGE =
   "I apologize, but I encountered an error. Please try again or contact support.";
 
 // --- Routes ---
-
 // ping/health check
 app.get("/ping", (req, res) => {
   res.json({ message: "pong" });
