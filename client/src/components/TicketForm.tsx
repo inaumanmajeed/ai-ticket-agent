@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import type { TicketResultType } from "../App";
+import ReactMarkdown from "react-markdown";
+
+import remarkGfm from "remark-gfm";
 
 interface TicketFormProps {
   onSubmit: (ticketText: string) => void;
@@ -57,7 +60,16 @@ const TicketForm: React.FC<TicketFormProps> = ({
           )}
           {messages.map((msg, idx) => (
             <div key={idx} className={`chatbot-row ${msg.sender}`}>
-              <div className={`chatbot-bubble ${msg.sender}`}>{msg.text}</div>
+              <div className={`chatbot-bubble ${msg.sender}`}>
+                {/* Conditionally render based on sender */}
+                {msg.sender === "bot" ? (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {msg.text}
+                  </ReactMarkdown>
+                ) : (
+                  msg.text
+                )}
+              </div>
             </div>
           ))}
           <div ref={chatEndRef} />
@@ -76,7 +88,15 @@ const TicketForm: React.FC<TicketFormProps> = ({
             type="submit"
             disabled={loading || !ticketText.trim()}
           >
-            {loading ? "🔄" : "➤"}
+            {loading ? (
+              <div className="loading-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            ) : (
+              "➤"
+            )}
           </button>
         </form>
       </div>
