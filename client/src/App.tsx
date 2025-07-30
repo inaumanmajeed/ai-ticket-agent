@@ -47,7 +47,7 @@ const App = () => {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>🎫 AI Ticket Assistant</h1>
+        <h1>🎫 AI Ticket & Tour-Planning Assistant</h1>
         <p>Intelligent support ticket classification and response system</p>
       </header>
       <main className="app-main">
